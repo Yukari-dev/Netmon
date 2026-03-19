@@ -10,15 +10,15 @@ void decoder(unsigned char *user, const struct pcap_pkthdr *header, const unsign
 
     if(type != 0x0800) return;
 
-    PacketBuffer *buf = (PacketBuffer*)user;
+    CaptureContext *ctx = (CaptureContext*)user;
 
-    buf->packets[buf->count] = create_packet(packet, header->caplen);
+    ctx->buffer->packets[ctx->buffer->count] = create_packet(packet, header->caplen);
 
-    unsigned char *packet_data = buf->packets[buf->count]->data;
+    unsigned char *packet_data = ctx->buffer->packets[ctx->buffer->count]->data;
 
     struct iphdr *ip = (struct iphdr*)(packet_data + 14);
 
-    buf->count++;
+    ctx->buffer->count++;
     struct in_addr srcIp;
     srcIp.s_addr = ip->saddr;
 
@@ -31,11 +31,17 @@ void decoder(unsigned char *user, const struct pcap_pkthdr *header, const unsign
     if(ip->protocol == PROTO_ICMP) protocol = "ICMP";
     char src_ip[16];
     strncpy(src_ip, inet_ntoa(srcIp), 15);
+    int bytes = header->caplen;
     printf("source Ip %s -> destination Ip %s Protocol %s, Length %d bytes\n", 
         src_ip, 
         inet_ntoa(destIp), 
         protocol, 
-        header->caplen
+        bytes
     );
-    
+
+    update_stats(ctx->stats, src_ip, bytes, ip->protocol);
+
+    char dest_ip[16];
+    strncpy(dest_ip, inet_ntoa(destIp), 15);
+    update_stats(ctx->stats, dest_ip, bytes, ip->protocol);
 }

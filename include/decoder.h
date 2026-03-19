@@ -5,7 +5,6 @@
 #define PROTO_ICMP 1
 #include <pcap.h>
 
-
 void decoder(unsigned char *user, const struct pcap_pkthdr *header, const unsigned char *packet);
 
 #endif

@@ -1,6 +1,7 @@
 #include "device.h"
 #include "packet.h"
 #include "decoder.h"
+#include "stats.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -47,13 +48,19 @@ int main(int argc, char* argv[]){
     PacketBuffer buffer;
     buffer.packets = malloc(sizeof(Packet*) * packets_limit);
     buffer.count = 0;
-    pcap_loop(handle, packets_limit, decoder, (unsigned char*)&buffer);
+
+    CaptureContext ctx;
+    ctx.buffer = &buffer;
+    ctx.stats  = create_stat();
+    pcap_loop(handle, packets_limit, decoder, (unsigned char*)&ctx);
+    print_stats(ctx.stats);
     close_device(handle);
 
-    for(int i = 0; i < buffer.count; i++){
-        free_packet(buffer.packets[i]);
+    for(int i = 0; i < ctx.buffer->count; i++){
+        free_packet(ctx.buffer->packets[i]);
     }
-    free(buffer.packets);
+    free(ctx.buffer->packets);
+    free_stats(ctx.stats);
 
     return 0;
 }

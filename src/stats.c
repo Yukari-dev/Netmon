@@ -19,7 +19,7 @@ void update_stats(StatsTable *table, const char* ip, int bytes, int protocol){
     if(protocol == 1)  table->icmp_count++;
     for(int i = 0; i < table->count; i++){
         char* currentIp = table->entries[i].ip;
-        if(strcmp(currentIp, ip, 16) == 0){
+        if(strcmp(currentIp, ip) == 0){
             table->entries[i].packet_count++;
             table->entries[i].bytes_total += bytes;
             return;
@@ -39,6 +39,13 @@ void print_stats(StatsTable *table){
             table->entries[i].bytes_total
         );
     }
+    printf("TCP protocol count: %d\n, 
+            UDP protocol count: %d\n, 
+            ICMP protocol count: %d\n",
+        table->tcp_count,
+        table->udp_count,
+        table->icmp_count
+    );
 }
 
 void free_stats(StatsTable *table){
