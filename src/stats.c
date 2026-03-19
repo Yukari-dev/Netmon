@@ -1,0 +1,48 @@
+#include "stats.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+StatsTable *create_stat(){
+    StatsTable *table = malloc(sizeof(StatsTable));
+    if(table == NULL) {
+        fprintf(stderr, "Error: could not allocate stats table\n");
+        return NULL;
+    }
+    memset(table, 0, sizeof(StatsTable));
+    return table;
+}
+
+void update_stats(StatsTable *table, const char* ip, int bytes, int protocol){
+    if(protocol == 6)  table->tcp_count++;
+    if(protocol == 17) table->udp_count++;
+    if(protocol == 1)  table->icmp_count++;
+    for(int i = 0; i < table->count; i++){
+        char* currentIp = table->entries[i].ip;
+        if(strcmp(currentIp, ip, 16) == 0){
+            table->entries[i].packet_count++;
+            table->entries[i].bytes_total += bytes;
+            return;
+        } 
+    }
+    strcpy(table->entries[table->count].ip, ip);
+    table->entries[table->count].bytes_total = bytes;
+    table->entries[table->count].packet_count = 1;
+    table->count++;
+}
+
+void print_stats(StatsTable *table){
+    for(int i = 0; i < table->count; i++){
+        printf("%-20s  packets: %d  bytes: %ld\n", 
+            table->entries[i].ip,
+            table->entries[i].packet_count,
+            table->entries[i].bytes_total
+        );
+    }
+}
+
+void free_stats(StatsTable *table){
+    if(table != NULL){
+        free(table);
+    }
+}
