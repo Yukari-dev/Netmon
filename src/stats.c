@@ -32,7 +32,7 @@ void update_stats(StatsTable *table, const char* ip, int bytes, int protocol){
 }
 
 void print_stats(StatsTable *table){
-    for(int i = 0; i < table->count; i++){
+    /*for(int i = 0; i < table->count; i++){
         printf("%-20s  packets: %d  bytes: %ld\n", 
             table->entries[i].ip,
             table->entries[i].packet_count,
@@ -45,7 +45,7 @@ void print_stats(StatsTable *table){
         table->tcp_count,
         table->udp_count,
         table->icmp_count
-    );
+    ); */
 }
 
 void free_stats(StatsTable *table){

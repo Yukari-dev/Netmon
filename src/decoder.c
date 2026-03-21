@@ -1,5 +1,6 @@
 #include "decoder.h"
 #include "packet.h"
+#include "ui.h"
 #include <netinet/ip.h>
 #include <stdio.h>
 #include <string.h>
@@ -32,16 +33,19 @@ void decoder(unsigned char *user, const struct pcap_pkthdr *header, const unsign
     char src_ip[16];
     strncpy(src_ip, inet_ntoa(srcIp), 15);
     int bytes = header->caplen;
-    printf("source Ip %s -> destination Ip %s Protocol %s, Length %d bytes\n", 
+    /*printf("source Ip %s -> destination Ip %s Protocol %s, Length %d bytes\n", 
         src_ip, 
         inet_ntoa(destIp), 
         protocol, 
         bytes
-    );
+    ); */
+
+
 
     update_stats(ctx->stats, src_ip, bytes, ip->protocol);
 
     char dest_ip[16];
     strncpy(dest_ip, inet_ntoa(destIp), 15);
     update_stats(ctx->stats, dest_ip, bytes, ip->protocol);
+    ui_update_feed(src_ip, dest_ip, protocol, bytes);
 }

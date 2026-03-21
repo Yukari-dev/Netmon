@@ -2,14 +2,46 @@
 #include "packet.h"
 #include "decoder.h"
 #include "stats.h"
+#include "ui.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <time.h>
+#include <signal.h>
+
+volatile int running = 1;
+pcap_t *g_handle;
+
+void handle_signal(int sig) { 
+    running = 0;
+    if(g_handle) pcap_breakloop(g_handle);
+}
+
+void *ui_thread(void *arg){
+    CaptureContext *ctx = (CaptureContext*)arg;
+    while(running){
+        int ch = getch();
+        if(ch == 'q' || ch == 27){
+            running = 0;
+            pcap_breakloop(ctx->handle);
+            break;
+        }
+        ui_update_stats(ctx->stats);
+        ui_update_footer(ctx);
+        sleep(1);
+    }
+    return NULL;
+}
+
 
 int main(int argc, char* argv[]){
+    time_t start_time = time(NULL);
     const char *device = "wlan0";
     const char *filter = "";
     int packets_limit  = 200;
+
 
     for(int i = 1; i < argc; i++){
         if(strcmp(argv[i], "-i") == 0){
@@ -39,8 +71,9 @@ int main(int argc, char* argv[]){
         }
     }
 
-    pcap_t *handle = open_device(device, filter);
-    if(handle == NULL){
+    ui_init(device, filter);
+    g_handle = open_device(device, filter);
+    if(g_handle == NULL){
         fprintf(stderr, "Couldn't open device %s\n", device);
         return 1;
     }
@@ -52,9 +85,17 @@ int main(int argc, char* argv[]){
     CaptureContext ctx;
     ctx.buffer = &buffer;
     ctx.stats  = create_stat();
-    pcap_loop(handle, packets_limit, decoder, (unsigned char*)&ctx);
+    ctx.handle = g_handle;
+    ctx.start_time = start_time;
+    signal(SIGINT, handle_signal);
+    pthread_t thread;
+    pthread_create(&thread, NULL, ui_thread, &ctx);   
+    pcap_loop(g_handle, packets_limit, decoder, (unsigned char*)&ctx);
+    running = 0;
+    pthread_join(thread, NULL);
+    ui_cleanup();
     print_stats(ctx.stats);
-    close_device(handle);
+    close_device(g_handle);
 
     for(int i = 0; i < ctx.buffer->count; i++){
         free_packet(ctx.buffer->packets[i]);
