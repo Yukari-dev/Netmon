@@ -1,6 +1,7 @@
 #include "decoder.h"
 #include "packet.h"
 #include "ui.h"
+#include "plugins.h"
 #include <netinet/ip.h>
 #include <stdio.h>
 #include <string.h>
@@ -48,4 +49,5 @@ void decoder(unsigned char *user, const struct pcap_pkthdr *header, const unsign
     strncpy(dest_ip, inet_ntoa(destIp), 15);
     update_stats(ctx->stats, dest_ip, bytes, ip->protocol);
     ui_update_feed(src_ip, dest_ip, protocol, bytes);
+    plugins_on_packet(src_ip, dest_ip, protocol, bytes);
 }

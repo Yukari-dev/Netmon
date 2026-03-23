@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <signal.h>
+#include "plugins.h"
 
 volatile int running = 1;
 pcap_t *g_handle;
@@ -71,12 +72,14 @@ int main(int argc, char* argv[]){
         }
     }
 
+    plugins_init("plugins");
     ui_init(device, filter);
     g_handle = open_device(device, filter);
     if(g_handle == NULL){
         fprintf(stderr, "Couldn't open device %s\n", device);
         return 1;
     }
+
     
     PacketBuffer buffer;
     buffer.packets = malloc(sizeof(Packet*) * packets_limit);
@@ -102,6 +105,7 @@ int main(int argc, char* argv[]){
     }
     free(ctx.buffer->packets);
     free_stats(ctx.stats);
+    plugins_cleanup();
 
     return 0;
 }

@@ -1,11 +1,14 @@
+PYTHON_INCLUDES = -I/usr/include/python3.14
+PYTHON_LIBS = -L/usr/lib -lpython3.14 -ldl -lm
 CC = gcc
-CFLAGS = -g -fsanitize=address -fsanitize=leak -Wall
-LIBS = -lpcap -lncurses
+CFLAGS = -g -fsanitize=address -fsanitize=leak -Wall $(PYTHON_INCLUDES)
+LIBS = -lpcap -lncurses $(PYTHON_LIBS)
 INCLUDES = -Iinclude
 
+
 # final binary — depends on all object files
-bin/netmon: obj/packet.o obj/device.o obj/decoder.o obj/stats.o obj/ui.o obj/netmon.o
-	$(CC) $(CFLAGS) -o bin/netmon obj/packet.o obj/device.o obj/decoder.o obj/stats.o obj/ui.o obj/netmon.o $(LIBS)
+bin/netmon: obj/packet.o obj/device.o obj/decoder.o obj/stats.o obj/ui.o obj/plugins.o obj/netmon.o
+	$(CC) $(CFLAGS) -o bin/netmon obj/packet.o obj/device.o obj/decoder.o obj/stats.o obj/ui.o obj/plugins.o obj/netmon.o $(LIBS)
 
 # each .c file gets its own rule
 obj/packet.o: src/packet.c include/packet.h
@@ -22,6 +25,9 @@ obj/stats.o: src/stats.c include/stats.h
 
 obj/ui.o: src/ui.c include/ui.h
 	$(CC) $(CFLAGS) $(INCLUDES) -c src/ui.c -o obj/ui.o
+
+obj/plugins.o: src/plugins.c include/plugins.h
+	$(CC) $(CFLAGS) $(INCLUDES) -c src/plugins.c -o obj/plugins.o
 
 obj/netmon.o: src/netmon.c
 	$(CC) $(CFLAGS) $(INCLUDES) -c src/netmon.c -o obj/netmon.o
