@@ -31,6 +31,22 @@ void update_stats(StatsTable *table, const char* ip, int bytes, int protocol){
     table->count++;
 }
 
+int stats_total_packets(StatsTable *stats){
+    int total = 0;
+    for(int i = 0; i < stats->count; i++){
+        total += stats->entries[i].packet_count;
+    }
+    return total;
+}
+
+long stats_total_bytes(StatsTable *stats){
+    long total = 0;
+    for(int i = 0; i < stats->count; i++){
+        total += stats->entries[i].bytes_total;
+    }
+    return total;
+}
+
 void print_stats(StatsTable *table){
     /*for(int i = 0; i < table->count; i++){
         printf("%-20s  packets: %d  bytes: %ld\n", 

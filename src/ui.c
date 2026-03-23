@@ -81,6 +81,7 @@ void ui_update_stats(StatsTable *stats){
     int rows, cols __attribute__((unused));
     getmaxyx(stats_win, rows, cols);
 
+
     werase(stats_win);
     box(stats_win, 0, 0);
 
@@ -88,7 +89,6 @@ void ui_update_stats(StatsTable *stats){
     mvwprintw(stats_win, 2, 2, "%-18s %6s %10s", "IP", "PKTS", "BYTES");
 
     for(int i = 0; i < stats->count; i++){
-
         mvwprintw(stats_win, 3 + i, 2, "%-18s %6d %10ld",
             stats->entries[i].ip,
             stats->entries[i].packet_count,
@@ -108,9 +108,14 @@ void ui_update_footer(CaptureContext *ctx){
     int elapsed = time(NULL) - ctx->start_time;
     int mins = elapsed / 60;
     int secs = elapsed % 60;
+
+    int total_packets = stats_total_packets(ctx->stats);
+    long total_bytes = stats_total_bytes(ctx->stats);
+
     werase(footer_win);
     box(footer_win, 0, 0);
-    mvwprintw(footer_win, 1, 2, "elapsed: %02d:%02d", mins, secs);
+
+    mvwprintw(footer_win, 1, 2, "packets: %d   bytes: %ld   elapsed: %02d:%02d", total_packets, total_bytes, mins, secs);
     wrefresh(footer_win);
 }
 

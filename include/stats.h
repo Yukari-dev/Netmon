@@ -19,6 +19,10 @@ StatsTable *create_stat();
 
 void update_stats(StatsTable *table, const char *ip, int bytes, int protocol);
 
+int stats_total_packets(StatsTable *stats);
+
+long stats_total_bytes(StatsTable *stats);
+
 void print_stats(StatsTable *table);
 
 void free_stats(StatsTable *table);
