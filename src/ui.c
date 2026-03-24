@@ -1,5 +1,6 @@
 #include "ui.h"
 #include <string.h>
+#include <stdlib.h>
 #define MAX_FEED_LINES 100
 static char feed_lines[MAX_FEED_LINES][256];
 static int feed_count = 0;
@@ -55,13 +56,13 @@ void ui_init(const char* device, const char* filter){
     wrefresh(footer_win);
 }
 
-void ui_update_feed(const char* src, const char* dest, const char* protocol, int bytes){
+void ui_update_feed(const char* src, const char* dest, const char* protocol, int bytes, uint16_t src_port, uint16_t dst_port){
     int rows, cols __attribute__((unused));
     getmaxyx(feed_win, rows, cols);
     int visible = rows - 3;
 
     snprintf(feed_lines[feed_count % MAX_FEED_LINES], 255,
-        "%s -> %s [%s] %d bytes", src, dest, protocol, bytes);
+        "%s:%d -> %s:%d [%s] %d bytes", src, src_port, dest, dst_port, protocol, bytes);
     
     feed_count++;
 
@@ -77,9 +78,11 @@ void ui_update_feed(const char* src, const char* dest, const char* protocol, int
     wrefresh(feed_win);
 }
 
-void ui_update_stats(StatsTable *stats){
+void ui_update_stats(CaptureContext *ctx){
     int rows, cols __attribute__((unused));
     getmaxyx(stats_win, rows, cols);
+
+    qsort(ctx->stats->entries, ctx->stats->count, sizeof(IPStats), compare_entries);
 
 
     werase(stats_win);
@@ -88,26 +91,28 @@ void ui_update_stats(StatsTable *stats){
     mvwprintw(stats_win, 1, 2, "TOP TALKERS");
     mvwprintw(stats_win, 2, 2, "%-18s %6s %10s", "IP", "PKTS", "BYTES");
 
-    for(int i = 0; i < stats->count; i++){
+    pthread_mutex_lock(&ctx->stats_mutex);
+    for(int i = 0; i < ctx->stats->count; i++){
         mvwprintw(stats_win, 3 + i, 2, "%-18s %6d %10ld",
-            stats->entries[i].ip,
-            stats->entries[i].packet_count,
-            stats->entries[i].bytes_total
+            ctx->stats->entries[i].ip,
+            ctx->stats->entries[i].packet_count,
+            ctx->stats->entries[i].bytes_total
         );
     }
+    pthread_mutex_unlock(&ctx->stats_mutex);
 
     mvwprintw(stats_win, rows-5, 2, "PROTOCOL BREAKDOWN");
-    mvwprintw(stats_win, rows-4, 2, "TCP   %d", stats->tcp_count);
-    mvwprintw(stats_win, rows-3, 2, "UDP   %d", stats->udp_count);
-    mvwprintw(stats_win, rows-2, 2, "ICMP  %d", stats->icmp_count);
+    mvwprintw(stats_win, rows-4, 2, "TCP   %d", ctx->stats->tcp_count);
+    mvwprintw(stats_win, rows-3, 2, "UDP   %d", ctx->stats->udp_count);
+    mvwprintw(stats_win, rows-2, 2, "ICMP  %d", ctx->stats->icmp_count);
 
     wrefresh(stats_win);
 }
 
 void ui_update_footer(CaptureContext *ctx){
-    int elapsed = time(NULL) - ctx->start_time;
-    int mins = elapsed / 60;
-    int secs = elapsed % 60;
+    time_t elapsed = time(NULL) - ctx->start_time;
+    int mins = (int)(elapsed / 60);
+    int secs = (int)(elapsed % 60);
 
     int total_packets = stats_total_packets(ctx->stats);
     long total_bytes = stats_total_bytes(ctx->stats);
@@ -117,6 +122,12 @@ void ui_update_footer(CaptureContext *ctx){
 
     mvwprintw(footer_win, 1, 2, "packets: %d   bytes: %ld   elapsed: %02d:%02d", total_packets, total_bytes, mins, secs);
     wrefresh(footer_win);
+}
+
+int compare_entries(const void *a, const void *b){
+    IPStats *entryA = (IPStats*)a;
+    IPStats *entryB = (IPStats*)b;
+    return entryB->packet_count - entryA->packet_count;
 }
 
 void ui_cleanup(void){

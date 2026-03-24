@@ -29,8 +29,10 @@ void *ui_thread(void *arg){
             pcap_breakloop(ctx->handle);
             break;
         }
-        ui_update_stats(ctx->stats);
+        pthread_mutex_lock(&ctx->ncurses_mutex);
+        ui_update_stats(ctx);
         ui_update_footer(ctx);
+        pthread_mutex_unlock(&ctx->ncurses_mutex);
         sleep(1);
     }
     return NULL;
@@ -41,7 +43,7 @@ int main(int argc, char* argv[]){
     time_t start_time = time(NULL);
     const char *device = "wlan0";
     const char *filter = "";
-    int packets_limit  = 200;
+    int packets_limit  = -1;
 
 
     for(int i = 1; i < argc; i++){
@@ -79,17 +81,19 @@ int main(int argc, char* argv[]){
         fprintf(stderr, "Couldn't open device %s\n", device);
         return 1;
     }
-
     
-    PacketBuffer buffer;
-    buffer.packets = malloc(sizeof(Packet*) * packets_limit);
-    buffer.count = 0;
-
+    
+    //PacketBuffer buffer;
+    //buffer.packets = malloc(sizeof(Packet*) * packets_limit);
+    //buffer.count = 0;
+    
     CaptureContext ctx;
-    ctx.buffer = &buffer;
+    //ctx.buffer = &buffer;
     ctx.stats  = create_stat();
     ctx.handle = g_handle;
     ctx.start_time = start_time;
+    pthread_mutex_init(&ctx.stats_mutex, NULL);
+    pthread_mutex_init(&ctx.ncurses_mutex, NULL);
     signal(SIGINT, handle_signal);
     pthread_t thread;
     pthread_create(&thread, NULL, ui_thread, &ctx);   
@@ -100,10 +104,12 @@ int main(int argc, char* argv[]){
     print_stats(ctx.stats);
     close_device(g_handle);
 
-    for(int i = 0; i < ctx.buffer->count; i++){
-        free_packet(ctx.buffer->packets[i]);
-    }
-    free(ctx.buffer->packets);
+    //for(int i = 0; i < ctx.buffer->count; i++){
+    //    free_packet(ctx.buffer->packets[i]);
+    //}
+    //free(ctx.buffer->packets);
+    pthread_mutex_destroy(&ctx.stats_mutex);
+    pthread_mutex_destroy(&ctx.ncurses_mutex);
     free_stats(ctx.stats);
     plugins_cleanup();
 
