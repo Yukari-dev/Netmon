@@ -92,7 +92,7 @@ void ui_update_stats(CaptureContext *ctx){
     mvwprintw(stats_win, 2, 2, "%-18s %6s %10s", "IP", "PKTS", "BYTES");
 
     pthread_mutex_lock(&ctx->stats_mutex);
-    for(int i = 0; i < ctx->stats->count; i++){
+    for(int i = 0; i < ctx->stats->count && (3 + i) < rows - 7; i++){
         mvwprintw(stats_win, 3 + i, 2, "%-18s %6d %10ld",
             ctx->stats->entries[i].ip,
             ctx->stats->entries[i].packet_count,
